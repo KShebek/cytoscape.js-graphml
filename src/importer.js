@@ -4,17 +4,22 @@ module.exports = function (cy, $, options, cyGraphML) {
       var $node = $(this);
 
       var settings = {
-        data: {id: $node.attr("id")},
+        data: { id: $node.attr("id") },
         css: {},
         position: {}
       };
 
-      if($parent != null)
+      if ($parent != null)
         settings["data"]["parent"] = $parent.attr("id");
 
       $node.children('data').each(function () {
         var $data = $(this);
-        settings["data"][$data.attr("key")] = $data.text();
+        var mapKey = nodeKeyDict[$data.attr("key")]["name"];
+        var mapData = $data.text()
+        if (nodeKeyDict[$data.attr("key")]["type"] != "string") {
+          mapData = Number(mapData)
+        }
+        settings["data"][mapKey] = mapData;
       });
 
       cy.add({
@@ -36,6 +41,19 @@ module.exports = function (cy, $, options, cyGraphML) {
     xml = $.parseXML(cyGraphML);
     $xml = $(xml);
 
+    // Get dict to map actual key names into cyctoscape
+    let nodeKeyDict = {};
+    $xml.find("key").each(function () {
+      let attr = this.attributes;
+      if (attr['for'].value == "node") {
+        nodeKeyDict[attr['id'].value] =
+        {
+          'type': attr['attr.type'].value,
+          'name': attr['attr.name'].value
+        }
+      }
+    })
+    
     $graphs = $xml.find("graph").first();
 
     $graphs.each(function () {
@@ -47,7 +65,7 @@ module.exports = function (cy, $, options, cyGraphML) {
         var $edge = $(this);
 
         var settings = {
-          data: {id: $edge.attr("id"), source: $edge.attr("source"), target: $edge.attr("target")},
+          data: { id: $edge.attr("id"), source: $edge.attr("source"), target: $edge.attr("target") },
           css: {},
           position: {}
         };
@@ -67,7 +85,7 @@ module.exports = function (cy, $, options, cyGraphML) {
     });
     var layoutOptT = typeof options.layoutBy;
     if (layoutOptT == "string")
-       cy.layout({name: options.layoutBy}).run();
+      cy.layout({ name: options.layoutBy }).run();
     else if (layoutOptT == "function")
       options.layoutBy();
   });
